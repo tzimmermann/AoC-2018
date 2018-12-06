@@ -1,0 +1,10 @@
+aaaaa.cccc
+aaaaa.cccc
+aaad##cccc
+aad####ccc
+..d####ccc
+bb.####ecc
+bbb.##ee..
+bbb.eeefff
+bbb.eeffff
+bbb.ffffff
