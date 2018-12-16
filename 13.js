@@ -46,7 +46,7 @@ let carId = 0;
 const CAR_TURN_ORDER = ["LEFT", "STRAIGHT", "RIGHT"];
 
 function getCarForChar(char) {
-  if (char === "^" || char ===  'v') {
+  if (char === '^' || char ===  'v') {
     return '|'
   }
   return '-'
@@ -74,23 +74,21 @@ rl.on("line", line => {
       initialTracks[rowNo].push(char)
     } else {
       tracks[rowNo].push(" ");
-      initialTracks[rowNo].push(' ')
+      initialTracks[rowNo].push(" ")
     }
   }
   rowNo++;
 });
 
 rl.on("close", () => {
-  // console.log(JSON.stringify(tracks));
-  // console.log(JSON.stringify(initialTracks));
-
   let nextPosition;
   let ticks = 0
   let crashed = false
   let crashedCars = []
+  let uncrashedCars = cars
   let lastRound = false
 
-  while (true) {
+  while (uncrashedCars.length > 1) {
     cars.sort((a, b) => {
       if (a.position.y < b.position.y) {
         return -1
@@ -106,9 +104,9 @@ rl.on("close", () => {
         return
       }
 
-      const { direction, position: { x,y }, position } = car 
-      const nextPosition = getNextPosition(direction, position)
-      
+      const { direction, position: { x,y }, position, id } = car 
+      const nextPosition = getNextPosition(direction, position, car)
+
       tracks[y][x] = initialTracks[y][x]
       
       position.x = nextPosition.x;
@@ -118,25 +116,17 @@ rl.on("close", () => {
 
       if (nextTrack === 'X') {
         crashed = true
-        console.log(`First Crash at ${JSON.stringify(position)}`)
-        
-        if (position.x === 32 && position.y === 20) {
-          tracks.forEach(row => {
-            console.log(JSON.stringify(row.join('')))
-          })
-        }
+        console.log(`Crash at ${JSON.stringify(position)}`)
         
         car.crashed = true
-  
         setOtherCarToCrashed(position)
 
         // clean up the crash and return to initial state
-        tracks[nextPosition.y][nextPosition.x] = initialTracks[y][x]
+        tracks[nextPosition.y][nextPosition.x] = initialTracks[nextPosition.y][nextPosition.x]
         return
       }
 
       car.direction = CAR_DIRECTIONS[nextTrack]
-
       tracks[nextPosition.y][nextPosition.x] = nextTrack
       
     });
@@ -144,17 +134,12 @@ rl.on("close", () => {
     writeTracks(ticks)
 
     crashedCars = cars.filter(car => car.crashed)
+    uncrashedCars = cars.filter(car => !car.crashed)
 
-    if (lastRound) {
-      console.log(`last car's position: ${JSON.stringify(crashedCars[0])}`)
-      break
-    }
-    if (crashedCars.length >= cars.length - 1) {
+    if (uncrashedCars.length === 1) {
       // only one uncrashed car left
-      lastRound = true
+      console.log(`last car's position: ${JSON.stringify(uncrashedCars[0])}`)
     }
-    // console.log(`cars.length: ${cars.length}`)
-    // console.log(`crashedCars.length: ${crashedCars.length}`)
   }
 
 });
@@ -163,14 +148,13 @@ function setOtherCarToCrashed(position) {
   const crashedInto = cars.find(car =>
     !car.crashed && car.position.x === position.x && car.position.y === position.y)
   
-  console.log(`car crashed into: ${JSON.stringify(crashedInto)}`)
   crashedInto.crashed = true
+
 }
 
 function writeTracks(ticks) {
   fileOutput.write(`After tick ${ticks}:\n`)
   tracks.forEach(row => {
-    // console.log(JSON.stringify(row))
     fileOutput.write(row.join(''))
     fileOutput.write('\n')
   })
@@ -220,7 +204,6 @@ function getNextTrack(car) {
   }
   if (currentField === '+') {
     car.nextTurn= CAR_TURN_ORDER[(CAR_TURN_ORDER.indexOf(car.nextTurn) + 1) % CAR_TURN_ORDER.length]
-    // console.log(`changed nextTurn to ${car.nextTurn}`)
     if (nextTurn === 'LEFT') {
       if (direction === 'UP') {
         return '<'
@@ -264,9 +247,10 @@ function getNextTrack(car) {
       }
     }
   }
+  console.log(`no next turn for ${JSON.stringify(car)}, currentField: ${currentField}`)
 }
 
-function getNextPosition(direction, position) {
+function getNextPosition(direction, position, car) {
   const { x, y } = position
   switch (direction) {
     case "RIGHT":
@@ -278,6 +262,6 @@ function getNextPosition(direction, position) {
     case "DOWN":
       return { y: y + 1, x };
     default:
-      console.log(`No direction given for ${direction}, ${JSON.stringify(position)} `)
+      console.log(`No direction given for ${direction}, Car ${JSON.stringify(car)} `)
   }
 }
